@@ -348,6 +348,7 @@ static void *worker(void *a)
 	double t;
 
 	double voltage;
+	int dir;
 
 	FILE  *vac_fp;
 	FILE  *gp;
@@ -466,10 +467,12 @@ static void *worker(void *a)
 	fprintf(dev_fd, "eventlog.enable = eventlog.ENABLE\n");
 	fprintf(dev_fd, "errorqueue.clear()\n");
 
+	dir = ((arg.Vg_stop-arg.Vg_start)/fabs(arg.Vg_stop-arg.Vg_start) > 0.0) ? 1 : -1;
+
 	while(get_run())
 	{
-		voltage = arg.Vg_start + vac_index * arg.Vg_step;
-		if (voltage > arg.Vg_stop)
+		voltage = arg.Vg_start + vac_index * arg.Vg_step * dir;
+		if (((dir > 0) && (voltage > arg.Vg_stop)) || ((dir < 0) && (voltage < arg.Vg_stop)))
 		{
 			set_run(0);
 			break;
@@ -477,16 +480,16 @@ static void *worker(void *a)
 
 		fprintf(stderr, "smua.source.levelv = %lf\n", voltage);
 		fprintf(dev_fd, "smua.source.levelv = %lf\n", voltage);
-		fprintf(dev_fd, "errorcode, message = errorqueue.next()\n");
-		fprintf(dev_fd, "print(errorcode, message)\n");
-		c = fgets(buf, 300, dev_fd);
-		if (c == NULL)
-		{
-			fprintf(stderr, "# E: Unable to read from device (%s)\n", strerror(ferror(dev_fd)));
-			set_run(0);
-			break;
-		}
-		fprintf(stderr, "#return error: %s\n", buf);
+		// fprintf(dev_fd, "errorcode, message = errorqueue.next()\n");
+		// fprintf(dev_fd, "print(errorcode, message)\n");
+		// c = fgets(buf, 300, dev_fd);
+		// if (c == NULL)
+		// {
+		// 	fprintf(stderr, "# E: Unable to read from device (%s)\n", strerror(ferror(dev_fd)));
+		// 	set_run(0);
+		// 	break;
+		// }
+		// fprintf(stderr, "#return error: %s\n", buf);
 
 		usleep(arg.T * 1e6);
 
