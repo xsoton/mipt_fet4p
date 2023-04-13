@@ -33,27 +33,32 @@ static char doc[] =
 static char args_doc[] = "SAMPLE_NAME";
 
 // Keys for options without short-options
-#define OPT_VG_START 1 // --Vg_start
-#define OPT_VG_STOP  2 // --Vg_stop
-#define OPT_VG_STEP  3 // --Vg_step
-#define OPT_IG_MAX   4 // --Ig_max
-#define OPT_VD       5 // --Vd
-#define OPT_ID_MAX   6 // --Id_max
-#define OPT_T        7 // --time
+#define OPT_CHAN     1  // --Chan
+#define OPT_V1_START 2  // --V1_start
+#define OPT_V1_STOP  3  // --V1_stop
+#define OPT_V1_STEP  4  // --V1_step
+#define OPT_I1_MAX   5  // --I1_max
+#define OPT_V2_START 6  // --V2_start
+#define OPT_V2_STOP  7  // --V2_stop
+#define OPT_V2_STEP  8  // --V2_step
+#define OPT_I2_MAX   9  // --I2_max
+#define OPT_DELAY    10 // --delay
 
 // The options we understand
 static struct argp_option options[] =
 {
-	{0,0,0,0, "GATE-SOURCE parameters:", 0},
-	{"Vg_start", OPT_VG_START, "double", 0, "Start voltage, V   (-5.0  - 5.0, default 0.0 )", 0},
-	{"Vg_stop" , OPT_VG_STOP , "double", 0, "Stop voltage, V    (-5.0  - 5.0, default 1.0 )", 0},
-	{"Vg_step" , OPT_VG_STEP , "double", 0, "Voltage step, V    (0.001 - 1.0, default 0.1 )", 0},
-	{"Ig_max"  , OPT_IG_MAX  , "double", 0, "Maximum current, A (0.001 - 0.1, default 0.01)", 0},
-	{0,0,0,0, "DRAIN-SOURCE parameters:", 0},
-	{"Vd"      , OPT_VD      , "double", 0, "Voltage, V         (-5.0  - 5.0, default 0.1 )", 0},
-	{"Id_max"  , OPT_ID_MAX  , "double", 0, "Maximum current, A (0.001 - 0.1, default  0.01)", 0},
+	{0,0,0,0, "Channels", 0},
+	{"Chan"    , OPT_CHAN    , "int"   , 0, "Scanning channel   (1 or 2, default 1 )"       , 0},
+	{"V1_start", OPT_V1_START, "double", 0, "Start voltage, V   (-5.0  - 5.0, default 0.0 )", 0},
+	{"V1_stop" , OPT_V1_STOP , "double", 0, "Stop voltage, V    (-5.0  - 5.0, default 1.0 )", 0},
+	{"V1_step" , OPT_V1_STEP , "double", 0, "Voltage step, V    (0.001 - 1.0, default 0.1 )", 0},
+	{"I1_max"  , OPT_I1_MAX  , "double", 0, "Maximum current, A (0.001 - 0.1, default 0.01)", 0},
+	{"V2_start", OPT_V2_START, "double", 0, "Start voltage, V   (-5.0  - 5.0, default 0.0 )", 0},
+	{"V2_stop" , OPT_V2_STOP , "double", 0, "Stop voltage, V    (-5.0  - 5.0, default 1.0 )", 0},
+	{"V2_step" , OPT_V2_STEP , "double", 0, "Voltage step, V    (0.001 - 1.0, default 0.1 )", 0},
+	{"I2_max"  , OPT_I2_MAX  , "double", 0, "Maximum current, A (0.001 - 0.1, default 0.01)", 0},
 	{0,0,0,0, "Required:", 0},
-	{"time"    , OPT_T       , "double", 0, "Scanning delay time, s (0.1 - 10.0)", 0},
+	{"delay"    , OPT_DELAY  , "double", 0, "Scanning delay time, s (0.1 - 10.0)"           , 0},
 	{0,0,0,0, "Common:", 0},
 	{0}
 };
@@ -63,86 +68,117 @@ struct arguments
 {
 	int    sample_name_flag;
 	char  *sample_name;
-	double Vg_start;
-	double Vg_stop;
-	double Vg_step;
-	double Ig_max;
-	double Vd;
-	double Id_max;
-	int    T_flag;
-	double T;
+	int    Chan;
+	double V1_start;
+	double V1_stop;
+	double V1_step;
+	double I1_max;
+	double V2_start;
+	double V2_stop;
+	double V2_step;
+	double I2_max;
+	int    Delay_flag;
+	double Delay;
 };
 
 static error_t parse_opt (int key, char *arg, struct argp_state *state)
 {
 	struct arguments *a = state->input;
 	double t;
+	int i;
 
 	switch (key)
 	{
-		case OPT_VG_START:
+	case OPT_CHAN:
+			i = atoi(arg);
+			if ((i != 1) && (i != 2))
+			{
+				fprintf(stderr, "# E: <Chan> is out of range. See \"fet4p --help\"\n");
+				return ARGP_ERR_UNKNOWN;
+			}
+			a->Chan = i;
+			break;
+		case OPT_V1_START:
 			t = atof(arg);
 			if ((t < -5.0) || (t > 5.0))
 			{
-				fprintf(stderr, "# E: <Vg_start> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <V1_start> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Vg_start = t;
+			a->V1_start = t;
 			break;
-		case OPT_VG_STOP:
+		case OPT_V1_STOP:
 			t = atof(arg);
 			if ((t < -5.0) || (t > 5.0))
 			{
-				fprintf(stderr, "# E: <Vg_stop> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <V1_stop> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Vg_stop = t;
+			a->V1_stop = t;
 			break;
-		case OPT_VG_STEP:
+		case OPT_V1_STEP:
 			t = atof(arg);
 			if ((t < 0.001) || (t > 1.0))
 			{
-				fprintf(stderr, "# E: <Vg_step> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <V1_step> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Vg_step = t;
+			a->V1_step = t;
 			break;
-		case OPT_IG_MAX:
+		case OPT_I1_MAX:
 			t = atof(arg);
 			if ((t < 0.001) || (t > 0.1))
 			{
-				fprintf(stderr, "# E: <Ig_max> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <I1_max> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Ig_max = t;
+			a->I1_max = t;
 			break;
-		case OPT_VD:
+		case OPT_V2_START:
 			t = atof(arg);
 			if ((t < -5.0) || (t > 5.0))
 			{
-				fprintf(stderr, "# E: <Vd> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <V2_start> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Vd = t;
+			a->V2_start = t;
 			break;
-		case OPT_ID_MAX:
+		case OPT_V2_STOP:
+			t = atof(arg);
+			if ((t < -5.0) || (t > 5.0))
+			{
+				fprintf(stderr, "# E: <V2_stop> is out of range. See \"fet4p --help\"\n");
+				return ARGP_ERR_UNKNOWN;
+			}
+			a->V2_stop = t;
+			break;
+		case OPT_V2_STEP:
+			t = atof(arg);
+			if ((t < 0.001) || (t > 1.0))
+			{
+				fprintf(stderr, "# E: <V2_step> is out of range. See \"fet4p --help\"\n");
+				return ARGP_ERR_UNKNOWN;
+			}
+			a->V2_step = t;
+			break;
+		case OPT_I2_MAX:
 			t = atof(arg);
 			if ((t < 0.001) || (t > 0.1))
 			{
-				fprintf(stderr, "# E: <Id_max> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <I2_max> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->Id_max = t;
+			a->I2_max = t;
 			break;
-		case OPT_T:
+		case OPT_DELAY:
 			t = atof(arg);
 			if ((t < 0.1) || (t > 10.0))
 			{
-				fprintf(stderr, "# E: <T> is out of range. See \"fet4p --help\"\n");
+				fprintf(stderr, "# E: <Delay> is out of range. See \"fet4p --help\"\n");
 				return ARGP_ERR_UNKNOWN;
 			}
-			a->T = t;
-			a->T_flag = 1;
+			a->Delay = t;
+			a->Delay_flag = 1;
 			break;
 		case ARGP_KEY_ARG:
 			a->sample_name = arg;
@@ -165,12 +201,15 @@ static struct argp argp = {options, parse_opt, args_doc, doc, NULL, NULL, NULL};
 #define INS_DEV_FILE "/dev/usbtmc0"
 
 // === [SOURCE] ===
-#define VG_START 0.0
-#define VG_STOP  5.0
-#define VG_STEP  0.1
-#define IG_MAX   0.01
-#define VG       0.5
-#define ID_MAX   0.001
+#define CHAN     1
+#define V1_START 0.0
+#define V1_STOP  1.0
+#define V1_STEP  0.1
+#define I1_MAX   0.01
+#define V2_START 0.0
+#define V2_STOP  1.0
+#define V2_STEP  0.1
+#define I2_MAX   0.01
 
 // === threads ====
 static void *commander(void *);
@@ -179,14 +218,31 @@ static void *worker(void *);
 // === utils ===
 static int get_run();
 static void set_run(int run_new);
+static int get_next();
+static void set_next(int next_new);
 static double get_time();
+
+static int direction(double start, double stop);
 
 // === global variables
 static char dir_str[200];
 static pthread_rwlock_t run_lock;
 static int run;
+static pthread_rwlock_t next_lock;
+static int next;
 static char filename_vac[250];
 struct arguments arg = {0};
+
+// === measurements ===
+enum meas_state
+{
+	M_BEFORE = 0,
+	M_STAGE1,
+	M_STAGE2,
+	M_STAGE3,
+	M_AFTER,
+	M_STOP
+};
 
 // #define DEBUG
 
@@ -197,25 +253,28 @@ int main(int argc, char const *argv[])
 	int status;
 
 	time_t start_time;
-	// struct tm start_time_struct;
+	struct tm start_time_struct;
 
 	pthread_t t_commander;
 	pthread_t t_worker;
 
 	// === parse input parameters
 	arg.sample_name_flag = 0;
-	arg.sample_name = NULL;
-	arg.Vg_start = VG_START;
-	arg.Vg_stop = VG_STOP;
-	arg.Vg_step = VG_STEP;
-	arg.Ig_max = IG_MAX;
-	arg.Vd = VG;
-	arg.Id_max = ID_MAX;
-	arg.T_flag = 0;
-	arg.T = 0.0;
+	arg.sample_name      = NULL;
+	arg.Chan             = CHAN;
+	arg.V1_start         = V1_START;
+	arg.V1_stop          = V1_STOP;
+	arg.V1_step          = V1_STEP;
+	arg.I1_max           = I1_MAX;
+	arg.V2_start         = V2_START;
+	arg.V2_stop          = V2_STOP;
+	arg.V2_step          = V2_STEP;
+	arg.I2_max           = I2_MAX;
+	arg.Delay_flag       = 0;
+	arg.Delay            = 0.0;
 
 	status = argp_parse(&argp, argc, argv, 0, 0, &arg);
-	if ((status != 0) || (arg.sample_name_flag != 1) || (arg.T_flag != 1))
+	if ((status != 0) || (arg.sample_name_flag != 1) || (arg.Delay_flag != 1))
 	{
 		fprintf(stderr, "# E: Error while parsing. See \"fet4p --help\"\n");
 		ret = -1;
@@ -225,14 +284,17 @@ int main(int argc, char const *argv[])
 	#ifdef DEBUG
 	fprintf(stderr, "sample_name_flag = %d\n" , arg.sample_name_flag);
 	fprintf(stderr, "sample_name      = %s\n" , arg.sample_name);
-	fprintf(stderr, "Vg_start         = %le\n", arg.Vg_start);
-	fprintf(stderr, "Vg_stop          = %le\n", arg.Vg_stop);
-	fprintf(stderr, "Vg_step          = %le\n", arg.Vg_step);
-	fprintf(stderr, "Ig_max           = %le\n", arg.Ig_max);
-	fprintf(stderr, "Vd               = %le\n", arg.Vd);
-	fprintf(stderr, "Id_max           = %le\n", arg.Id_max);
-	fprintf(stderr, "T_flag           = %d\n" , arg.T_flag);
-	fprintf(stderr, "T                = %le\n", arg.T);
+	fprintf(stderr, "Chan             = %d\n" , arg.Chan);
+	fprintf(stderr, "V1_start         = %le\n", arg.V1_start);
+	fprintf(stderr, "V1_stop          = %le\n", arg.V1_stop);
+	fprintf(stderr, "V1_step          = %le\n", arg.V1_step);
+	fprintf(stderr, "I1_max           = %le\n", arg.I1_max);
+	fprintf(stderr, "V1_start         = %le\n", arg.V2_start);
+	fprintf(stderr, "V1_stop          = %le\n", arg.V2_stop);
+	fprintf(stderr, "V1_step          = %le\n", arg.V2_step);
+	fprintf(stderr, "I1_max           = %le\n", arg.I2_max);
+	fprintf(stderr, "Delay_flag       = %d\n" , arg.Delay_flag);
+	fprintf(stderr, "Delay            = %le\n", arg.Delay);
 	#endif
 
 	// === get start time of experiment ===
@@ -246,6 +308,10 @@ int main(int argc, char const *argv[])
 	// === initialize run state variable
 	pthread_rwlock_init(&run_lock, NULL);
 	run = 1;
+
+	// === initialize next state variable
+	pthread_rwlock_init(&next_lock, NULL);
+	next = 0;
 
 	// === create dirictory in "20191012_153504_<experiment_name>" format
 	snprintf(dir_str, 200, "%04d-%02d-%02d_%02d-%02d-%02d_%s",
@@ -314,7 +380,11 @@ static void *commander(void *a)
 				printf(
 					"Help:\n"
 					"\th -- this help;\n"
+					"\tn -- next stage;\n"
 					"\tq -- exit the program;\n");
+				break;
+			case 'n':
+				set_next(1);
 				break;
 			case 'q':
 				set_run(0);
@@ -340,10 +410,7 @@ static void *worker(void *a)
 
 	int    vac_index;
 	double vac_time;
-	double Vg;
-	double Ig;
-	double Vd;
-	double Id;
+	double V1, I1, V2, I2;
 
 	double t;
 
@@ -355,6 +422,15 @@ static void *worker(void *a)
 	char   buf[300];
 	char  *c;
 
+	enum meas_state state = M_BEFORE;
+	int i1, i2, i3;
+
+	double V_start, V_stop, V_step;
+
+	V_start = (arg.Chan == 1) ? arg.V1_start : arg.V2_start;
+	V_stop  = (arg.Chan == 1) ? arg.V1_stop  : arg.V2_stop;
+	V_step  = (arg.Chan == 1) ? arg.V1_step  : arg.V2_step;
+
 	dev_fd = fopen(INS_DEV_FILE, "r+");
 	if(dev_fd == NULL)
 	{
@@ -364,19 +440,19 @@ static void *worker(void *a)
 	setlinebuf(dev_fd);
 
 	// === init device
-	// channel A - Vg
+	// channel A - V1
 	fprintf(dev_fd, "smua.source.output = smua.OUTPUT_OFF\n");
 	fprintf(dev_fd, "smua.source.func = smua.OUTPUT_DCVOLTS\n");
 	fprintf(dev_fd, "smua.source.autorangev = smua.AUTORANGE_ON\n");
 	fprintf(dev_fd, "smua.source.levelv = 0.0\n");
-	fprintf(dev_fd, "smua.source.limiti = %le\n", arg.Ig_max);
+	fprintf(dev_fd, "smua.source.limiti = %le\n", arg.I1_max);
 
-	// channel B - Vd
+	// channel B - V2
 	fprintf(dev_fd, "smub.source.output = smub.OUTPUT_OFF\n");
 	fprintf(dev_fd, "smub.source.func = smub.OUTPUT_DCVOLTS\n");
 	fprintf(dev_fd, "smub.source.autorangev = smub.AUTORANGE_ON\n");
-	fprintf(dev_fd, "smub.source.levelv = %le\n", arg.Vd);
-	fprintf(dev_fd, "smub.source.limiti = %le\n", arg.Id_max);
+	fprintf(dev_fd, "smub.source.levelv = 0.0\n");
+	fprintf(dev_fd, "smub.source.limiti = %le\n", arg.I2_max);
 
 	// === create vac file
 	vac_fp = fopen(filename_vac, "w+");
@@ -387,6 +463,8 @@ static void *worker(void *a)
 	}
 	setlinebuf(vac_fp);
 
+	fprintf(stderr, "1\n");
+
 	// === write vac header
 	r = fprintf(vac_fp,
 		"# Measuring of charge carrier mobility of thin films"
@@ -395,19 +473,22 @@ static void *worker(void *a)
 		"# Date: %04d.%02d.%02d %02d:%02d:%02d\n"
 		"# Start parameters:\n"
 		"#   sample_name      = %s\n"
-		"#   Vg_start         = %le\n"
-		"#   Vg_stop          = %le\n"
-		"#   Vg_step          = %le\n"
-		"#   Ig_max           = %le\n"
-		"#   Vd               = %le\n"
-		"#   Id_max           = %le\n"
-		"#   T                = %le\n"
+		"#   Chan             = %d\n"
+		"#   V1_start         = %le\n"
+		"#   V1_stop          = %le\n"
+		"#   V1_step          = %le\n"
+		"#   I1_max           = %le\n"
+		"#   V2_start         = %le\n"
+		"#   V2_stop          = %le\n"
+		"#   V2_step          = %le\n"
+		"#   I2_max           = %le\n"
+		"#   Delay            = %le\n"
 		"# 1: index\n"
 		"# 2: time, s\n"
-		"# 3: Vg, V\n"
-		"# 4: Ig, A\n"
-		"# 5: Vd, V\n"
-		"# 6: Id, A\n",
+		"# 3: V1, V\n"
+		"# 4: I1, A\n"
+		"# 5: V2, V\n"
+		"# 6: I2, A\n",
 		start_time_struct.tm_year + 1900,
 		start_time_struct.tm_mon + 1,
 		start_time_struct.tm_mday,
@@ -415,13 +496,16 @@ static void *worker(void *a)
 		start_time_struct.tm_min,
 		start_time_struct.tm_sec,
 		arg.sample_name,
-		arg.Vg_start,
-		arg.Vg_stop,
-		arg.Vg_step,
-		arg.Ig_max,
-		arg.Vd,
-		arg.Id_max,
-		arg.T
+		arg.Chan,
+		arg.V1_start,
+		arg.V1_stop,
+		arg.V1_step,
+		arg.I1_max,
+		arg.V2_start,
+		arg.V2_stop,
+		arg.V2_step,
+		arg.I2_max,
+		arg.Delay
 	);
 	if(r < 0)
 	{
@@ -450,8 +534,8 @@ static void *worker(void *a)
 		"set xlabel \"Vg, V\"\n"
 		"set ylabel \"Id, A\"\n"
 		"set format y \"%%.3s%%c\"\n",
-		arg.Vg_start,
-		arg.Vg_stop
+		V_start,
+		V_stop
 	);
 	if(r < 0)
 	{
@@ -464,34 +548,103 @@ static void *worker(void *a)
 
 	fprintf(dev_fd, "smua.source.output = smua.OUTPUT_ON\n");
 	fprintf(dev_fd, "smub.source.output = smub.OUTPUT_ON\n");
-	fprintf(dev_fd, "eventlog.enable = eventlog.ENABLE\n");
-	fprintf(dev_fd, "errorqueue.clear()\n");
 
-	dir = ((arg.Vg_stop-arg.Vg_start)/fabs(arg.Vg_stop-arg.Vg_start) > 0.0) ? 1 : -1;
+	if (arg.Chan == 1)
+		fprintf(dev_fd, "smub.source.levelv = %lf\n", arg.V2_start);
+	else
+		fprintf(dev_fd, "smua.source.levelv = %lf\n", arg.V1_start);
 
+	if (fabs(V_start) < V_step)
+		state = M_STAGE2;
+	else
+		state = M_STAGE1;
+
+	i1 = i2 = i3 = 0;
+
+
+// set_run(0);
 	while(get_run())
 	{
-		voltage = arg.Vg_start + vac_index * arg.Vg_step * dir;
-		if (((dir > 0) && (voltage > arg.Vg_stop)) || ((dir < 0) && (voltage < arg.Vg_stop)))
+		switch(state)
+		{
+			case M_STAGE1:
+				dir = direction(0.0, V_start);
+				if (get_next())
+				{
+					V_start = voltage + V_step * dir;
+					state = M_STAGE2;
+					set_next(0);
+				}
+				else
+				{
+					voltage = 0.0 + i1 * V_step * dir;
+					if (((dir > 0) && (voltage >= V_start)) || ((dir < 0) && (voltage <= V_start)))
+						state = M_STAGE2;
+					else
+					{
+						i1++;
+						vac_index++;
+						break;
+					}
+				}
+			case M_STAGE2:
+				dir = direction(V_start, V_stop);
+				if (get_next())
+				{
+					V_stop = voltage + V_step * dir;
+					state = M_STAGE3;
+					set_next(0);
+				}
+				else
+				{
+					voltage = V_start + i2 * V_step * dir;
+					if (((dir > 0) && (voltage >= V_stop)) || ((dir < 0) && (voltage <= V_stop)))
+						state = M_STAGE3;
+					else
+					{
+						i2++;
+						vac_index++;
+						break;
+					}
+				}
+			case M_STAGE3:
+				if (get_next())
+				{
+					state = M_AFTER;
+					set_next(0);
+					break;
+				}
+				else
+				{
+					dir = direction(V_stop, 0.0);
+					voltage = V_stop + i3 * V_step * dir;
+					if (((dir > 0) && (voltage >= 0.0)) || ((dir < 0) && (voltage <= 0.0)))
+						state = M_AFTER;
+					else
+					{
+						i3++;
+						vac_index++;
+						break;
+					}
+				}
+			default:
+				state = M_STOP;
+		}
+
+		if (state > M_STAGE3)
 		{
 			set_run(0);
 			break;
 		}
 
-		fprintf(stderr, "smua.source.levelv = %lf\n", voltage);
-		fprintf(dev_fd, "smua.source.levelv = %lf\n", voltage);
-		// fprintf(dev_fd, "errorcode, message = errorqueue.next()\n");
-		// fprintf(dev_fd, "print(errorcode, message)\n");
-		// c = fgets(buf, 300, dev_fd);
-		// if (c == NULL)
-		// {
-		// 	fprintf(stderr, "# E: Unable to read from device (%s)\n", strerror(ferror(dev_fd)));
-		// 	set_run(0);
-		// 	break;
-		// }
-		// fprintf(stderr, "#return error: %s\n", buf);
+		fprintf(stderr, "voltage = %lf\n", voltage);
 
-		usleep(arg.T * 1e6);
+		if (arg.Chan == 1)
+			fprintf(dev_fd, "smua.source.levelv = %lf\n", voltage);
+		else
+			fprintf(dev_fd, "smub.source.levelv = %lf\n", voltage);
+
+		usleep(arg.Delay * 1e6);
 
 		vac_time = get_time();
 		if (vac_time < 0)
@@ -509,7 +662,7 @@ static void *worker(void *a)
 			set_run(0);
 			break;
 		}
-		sscanf(buf, "%lf", &Vg);
+		sscanf(buf, "%lf", &V1);
 
 		fprintf(dev_fd, "print(smua.measure.i())\n");
 		c = fgets(buf, 300, dev_fd);
@@ -519,7 +672,7 @@ static void *worker(void *a)
 			set_run(0);
 			break;
 		}
-		sscanf(buf, "%lf", &Ig);
+		sscanf(buf, "%lf", &I1);
 
 		fprintf(dev_fd, "print(smub.measure.v())\n");
 		c = fgets(buf, 300, dev_fd);
@@ -529,7 +682,7 @@ static void *worker(void *a)
 			set_run(0);
 			break;
 		}
-		sscanf(buf, "%lf", &Vd);
+		sscanf(buf, "%lf", &V2);
 
 		fprintf(dev_fd, "print(smub.measure.i())\n");
 		c = fgets(buf, 300, dev_fd);
@@ -539,12 +692,12 @@ static void *worker(void *a)
 			set_run(0);
 			break;
 		}
-		sscanf(buf, "%lf", &Id);
+		sscanf(buf, "%lf", &I2);
 
 		r = fprintf(vac_fp, "%d\t%le\t%+le\t%+le\t%+le\t%+le\n",
 			vac_index,
 			vac_time,
-			Vg, Ig, Vd, Id
+			V1, I1, V2, I2
 		);
 		if(r < 0)
 		{
@@ -553,13 +706,13 @@ static void *worker(void *a)
 			break;
 		}
 
+		r = fprintf(gp, "set title \"i = %d, t = %.3lf s\"\n", vac_index, vac_time);
 		r = fprintf(gp,
-			"set title \"i = %d, t = %.3lf s\"\n"
-			"plot \"%s\" u 3:6 w l lw 1 title \"Vg = %.3lf V, Id = %le A\"\n",
-			vac_index,
-			vac_time,
+			"plot \"%s\" u %d:4 w l lw 1 title \"V1 = %.3lf V, I1 = %le A\", "
+			       "\"\" u %d:6 w l lw 1 title \"V2 = %.3lf V, I2 = %le A\"\n",
 			filename_vac,
-			Vg, Id
+			(arg.Chan == 1) ? 3 : 5, V1, I1,
+			(arg.Chan == 1) ? 3 : 5, V2, I2
 		);
 		if(r < 0)
 		{
@@ -572,12 +725,27 @@ static void *worker(void *a)
 	}
 
 	fprintf(dev_fd, "smua.source.levelv = 0.0\n");
-	fprintf(dev_fd, "smua.source.output = smua.OUTPUT_OFF\n");
-
 	fprintf(dev_fd, "smub.source.levelv = 0.0\n");
+	usleep(1e6);
+	fprintf(dev_fd, "smua.source.output = smua.OUTPUT_OFF\n");
 	fprintf(dev_fd, "smub.source.output = smua.OUTPUT_OFF\n");
 
-	fprintf(dev_fd, "beeper.beep(1, 440)");
+	fprintf(dev_fd, "beeper.beep(0.15, 220.0)");
+	fprintf(dev_fd, "beeper.beep(0.15, 130.8)");
+	fprintf(dev_fd, "beeper.beep(0.30, 146.8)");
+	fprintf(dev_fd, "beeper.beep(0.30, 146.8)");
+	fprintf(dev_fd, "beeper.beep(0.15, 146.8)");
+	fprintf(dev_fd, "beeper.beep(0.15, 164.8)");
+	fprintf(dev_fd, "beeper.beep(0.30, 174.6)");
+	fprintf(dev_fd, "beeper.beep(0.30, 174.6)");
+	fprintf(dev_fd, "beeper.beep(0.15, 174.6)");
+	fprintf(dev_fd, "beeper.beep(0.15, 196.0)");
+	fprintf(dev_fd, "beeper.beep(0.30, 164.8)");
+	fprintf(dev_fd, "beeper.beep(0.30, 164.8)");
+	fprintf(dev_fd, "beeper.beep(0.15, 146.8)");
+	fprintf(dev_fd, "beeper.beep(0.15, 130.8)");
+	fprintf(dev_fd, "beeper.beep(0.15, 130.8)");
+	fprintf(dev_fd, "beeper.beep(0.30, 146.8)");
 
 	r = fprintf(gp, "exit;\n");
 	if(r < 0)
@@ -627,6 +795,22 @@ static void set_run(int run_new)
 	pthread_rwlock_unlock(&run_lock);
 }
 
+static int get_next()
+{
+	int next_local;
+	pthread_rwlock_rdlock(&next_lock);
+		next_local = next;
+	pthread_rwlock_unlock(&next_lock);
+	return next_local;
+}
+
+static void set_next(int next_new)
+{
+	pthread_rwlock_wrlock(&next_lock);
+		next = next_new;
+	pthread_rwlock_unlock(&next_lock);
+}
+
 static double get_time()
 {
 	static int first = 1;
@@ -665,4 +849,9 @@ static double get_time()
 	}
 
 	return ret;
+}
+
+static int direction(double start, double stop)
+{
+	return (stop >= start) ? 1 : -1;
 }
